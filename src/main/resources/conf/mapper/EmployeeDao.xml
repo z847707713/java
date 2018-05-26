@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssm.dao.EmployeeDao">
+    
+     <cache type="org.mybatis.caches.ehcache.EhcacheCache"></cache>
+    
+    <sql id="field">
+       id,name,id_card idCard,email,type,department_id departmentId,
+       create_time createTime,
+       create_by createBy,
+       update_time updateTime,
+       update_by updateBy
+    </sql>
+    <!--  
+    public Employee getEmployeeById(Integer id);  	//查询员工根据id
+    -->
+    <resultMap type="com.ssm.entity.Employee" id="getEmployee">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="idCard" property="idCard" />
+        <result column="email" property="email" />
+        <result column="type" property="type" />
+        <result column="createTime" property="createTime"/>
+        <result column="createBy" property="createBy" />
+        <result column="updateTime" property="updateTime" />
+        <result column="updateBy" property="updateBy" />
+        <association property="department" javaType="com.ssm.entity.Department">
+             <id column="departmentId" property="id"/>
+        </association>
+    </resultMap>
+  
+    <select id="getEmployeeById" resultMap="getEmployee">
+       select <include refid="field"></include>
+       from employee 
+       where id =#{id}
+    </select>
+    
+
+    <!-- 
+	public void updateEmployee(Employee employee);	//更新员工信息
+	 -->
+	 <update id="updateEmployee">
+	    update employee 
+	    <set>
+	       <if test="name != null and name != '' ">
+	           name = #{name},
+	       </if>
+	       <if test="idCard != null and idCard != '' ">
+	           id_card = #{idCard},
+	       </if>
+	       <if test="email != null and email != '' ">
+	           email = #{email},
+	       </if>
+	       <if test="type != null and type != '' ">
+	           type = #{type},
+	       </if>
+	       <if test="department.id != null">
+	           department_id = #{department.id},
+	       </if>
+	       <if test="updateTime != null">
+	           update_time = #{updateTime},
+	       </if>
+	       <if test="updateBy != null and updateBy != '' ">
+	          update_by = #{updateBy}
+	       </if>
+	    </set>
+	    <where>
+	        id = #{id}
+	    </where>
+	 </update>
+	 
+	 
+	 <!--  
+	public void deleteById(Integer id);
+	-->
+	<delete id="deleteById">
+	   delete from employee where id = #{id}
+	</delete>
+	<!--  
+	public void createEmployee(Employee employee);
+	-->
+	<insert id="createEmployee" >
+	   insert into employee 
+	      values(null,
+	             #{name},
+	             #{idCard},
+	             #{email},
+	             #{type},
+	             #{department.id},
+	             #{createTime},
+	             #{createBy},
+	             #{updateTime},
+	             #{updateBy}
+	            )
+	</insert>
+	
+	
+	
+	 <resultMap type="com.ssm.entity.Employee" id="getEmployeeAndDepartment">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="idCard" property="idCard" />
+        <result column="email" property="email" />
+        <result column="type" property="type" />
+        <result column="createTime" property="createTime"/>
+        <result column="createBy" property="createBy" />
+        <result column="updateTime" property="updateTime" />
+        <result column="updateBy" property="updateBy" />
+        <association select="" column="departmentId" property="department">
+          
+        </association>
+        
+     </resultMap>
+	<!--  
+	public void getAll(CriteriaEmployee criteriaEmployee,int pageSize);  //得到所有的员工信息(包含部门信息)，需要传入过滤条件
+	-->
+	<select id="getAll" resultMap="getEmployeeAndDepartment">
+	    <bind name="page" value="(param1.page - 1) * param2"/>
+	    select <include refid="field"></include> from employee 
+	        <where>
+	           <if test="param1 != null">
+	             <if test="param1.id != null">
+	                id like #{param1.id},
+	             </if>
+	             <if test="param1.name != null and param1.name != '' ">
+	                name like #{param1.name},
+	             </if>
+	             <if test="param1.email != null and param1.email != '' ">
+	                email like #{param1.email},
+	             </if>
+	             <if test="param1.type != null and param1.type != '' ">
+	                type like #{param1.type}
+	             </if>
+	            
+	           </if>
+	        </where>
+	       limit #{page},#{param2}
+	</select>
+	
+	<!--  
+	public void insertEmployeeAndUser(Map<Integer,Integer> map);//@param map: key(用户id),value(员工id)
+	-->
+	<insert id="insertEmployeeAndUser">
+	   insert into employee_user values
+	   <foreach collection="_parameter" index="key" item="value" separator=",">
+	       (#{value},#{key})
+ 	   </foreach>
+	</insert>
+	
+	
+	<!--  
+	public void deleteEmployeeAndUser(Integer id);   //通过员工id 删除关联表的信息
+    -->
+    <delete id="deleteEmployeeAndUser">
+       delete from employee_user where employee_id = #{id}
+    </delete>
+    
+    
+</mapper>  

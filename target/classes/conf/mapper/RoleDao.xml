@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssm.dao.RoleDao">
+    
+     <cache type="org.mybatis.caches.ehcache.EhcacheCache"></cache>
+    
+    <sql id="field">
+        id,role_name roleName,role_desc roleDesc,
+        create_time createTime,
+        create_by createBy,
+        update_time updateTime,
+        update_by updateBy
+    </sql>
+    
+	<!-- public Role getRoleById(Integer id); // 通过角色id 得到角色的信息(不包括权限的信息) -->
+    <select id="getRoleById" resultType="com.ssm.entity.Role">
+       select <include refid="field"></include> from role where id = #{id}
+    </select>
+	<!-- public void createRole(Role role); // 创建一个角色，@param role 封装角色的信息（不包括权限的信息） -->
+	
+	<insert id="createRole">
+	   insert into role 
+	       values(
+	         null,
+	         #{roleName},
+	         #{roleDesc},
+	         #{createTime},
+	         #{createBy},
+	         #{updateTime},
+	         #{updateBy}
+	         )
+	</insert>
+	
+	
+	<!-- public void deleteRoleById(Integer id); // 删除角色表信息 （不删除关联）， @param 
+		id -->
+	<delete id="deleteRoleById">
+	    delete from role where id = #{id}
+	</delete>	
+		
+	<!-- public void updateRole(Role role); // 更新角色的信息 -->
+	<update id="updateRole">
+	    update role 
+	       
+	        <set>
+	        <if test="roleName != null and roleName != ''">
+	           role_name = #{roleName},
+	        </if>
+	        <if test="roleDesc != null and roleDesc !=''">
+	           role_desc = #{roleDesc},
+	        </if>
+	        <if test="updateTime != null and updateTime !=''">
+	           update_time = #{updateTime},
+	        </if>
+	        <if test="updateBy != null and updateBy != ''">
+	           update_by = #{updateBy}
+	        </if> 
+	        </set>
+	       <where>
+	           id = #{id}
+	       </where>
+	</update>
+	
+	<!-- public List<Role> getAllRole(CriteriaRole ciCriteriaRole,int pageSize); 
+		// 得到所有的role(不包括权限) -->
+	<select id="getAllRole" resultType="com.ssm.entity.Role">
+	    <if test="param1 != null and param2 != null">
+	        <bind name="page" value="(param1.page -1) * param2"/>
+	    </if>
+	   
+	    select <include refid="field"></include> from role 
+	    <where>
+	         <if test="param1 != null">
+	             <if test="param1.id != null">
+	                id like #{param1.id}
+	             </if>
+	             <if test="param1.roleName != null and param1.roleName != '' ">
+	                and role_name like #{param1.roleName}
+	             </if>
+	             <if test="param1.roleDesc != null and param1.roleDesc != '' ">
+	                and role_desc like #{param1.roleDesc}
+	             </if>
+	   
+	         </if>
+	    </where>
+	    <if test="param2 != null">
+	      limit #{page},#{param2}
+	    </if>
+	    
+	</select>	
+	
+	<select id="getAllRoleCount" resultType="int">
+	   
+	    select count(id) from role 
+	    <where>
+	         <if test="param1 != null">
+	             <if test="param1.id != null">
+	                id like #{param1.id}
+	             </if>
+	             <if test="param1.roleName != null and param1.roleName != '' ">
+	                and role_name like #{param1.roleName}
+	             </if>
+	             <if test="param1.roleDesc != null and param1.roleDesc != '' ">
+	                and role_desc like #{param1.roleDesc}
+	             </if>
+	   
+	         </if>
+	    </where>
+	   
+	</select>	
+
+    		
+		
+		
+    <resultMap type="com.ssm.entity.Role" id="getRoleAndPermissions">
+       <id column="id" property="id" />
+       <result column="role_name" property="roleName" />
+       <result column="role_desc" property="roleDesc" />
+       <result column="create_time" property="creatTime" />
+       <result column="create_by" property="createBy" />
+       <result column="update_time" property="updateTime"/>
+       <result column="update_by" property="updateBy" />
+       <association property="permissions" select="getRolesPermissionsById" column="id"></association>
+    </resultMap>
+    
+    <!-- public List<Permission> getAllRolesPermissions(Integer id); // 通过角色id 
+		查找该角色对应的所有的权限 -->
+    <select id="getRolesPermissionsById" resultType="com.ssm.entity.Permission">
+        select id,name,url,type,permission,create_time createTime,create_by createBy,update_time updateTime,
+            update_by updateBy 
+           from permission p,role_permission rp 
+           where p.id = rp.permission_id
+              and rp.role_id = #{id}
+    </select>
+    
+	<!-- public List<Role> getAllRoleAndPermissions(CriteriaRole ciCriteriaRole,int 
+		pageSize); // 得到所有的role(包括权限) -->
+	<select id="getAllRoleAndPermissions" resultMap="getRoleAndPermissions">
+	    <if test="param1 != null and param2 != null">
+	        <bind name="page" value="(param1.page -1) * param2"/>
+	    </if>
+	   select <include refid="field"></include>
+	      from role
+	    <where>
+	        <if test="param1 != null">
+	             <if test="param1.id != null">
+	                id like #{param1.id}
+	             </if>
+	             <if test="param1.roleName != null and param1.roleName != '' ">
+	                and role_name like #{param1.roleName}
+	             </if>
+	             <if test="param1.roleDesc != null and param1.roleDesc != '' ">
+	                and role_desc like #{param1.roleDesc}
+	             </if>
+	   
+	         </if>
+	    </where>
+	      <if test="param2 != null">
+	    limit #{page},#{param2}
+	    </if>
+	</select>	
+		
+
+   
+    
+    
+	<!-- public void deleteUserRole(Integer userId); // 删除关联表中的字段，通过id； @param 
+		userId(用户id) -->
+    <!-- 删除关联表中的字段，通过id； @param userId(用户id) -->
+	<delete id="deleteUserRole">
+	    delete from user_role where user_id = #{user_id}
+	</delete>
+ 
+   
+	<!-- public void insertUserRole(Map<Integer, Integer> map); // 向关联表中插入字段，@param 
+		map: key(角色id),value(用户id) -->
+     <insert id="insertUserRole" >
+        insert into user_role(user_id,role_id) values
+        <foreach collection="_parameter" item="value" index="key" separator=",">
+            (#{key},#{value})
+        </foreach>
+    </insert>
+  
+ 
+	<!-- public void insertRolePermission(Map<Integer, Integer> map); // @param 
+		map: key(权限id)，value(角色id) -->
+    <insert id="insertRolePermission">
+       insert into role_permission values
+       <foreach collection="_parameter" index="key" item="value" separator=",">
+         (#{value},#{key})
+       </foreach>
+    </insert>		
+		
+	<!-- public void deleteRolePermission(Integer roleId); // roleId(角色) -->
+	<delete id="deleteRolePermission">
+	  delete from role_permission where role_id = #{roleId}
+	</delete>
+	
+</mapper>

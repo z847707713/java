@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssm.dao.DepartmentDao">
+     
+      <cache type="org.mybatis.caches.ehcache.EhcacheCache"></cache>
+     
+     <!--  
+     public void create(Department dept);
+     -->
+     <insert id="create">
+        insert into department 
+         values(null,
+                #{name},
+                #{defaultRoleId},
+                #{createTime},
+	            #{createBy},
+	            #{updateTime},
+	            #{updateBy} 
+                )
+     </insert>
+	 
+	 <!--  
+	 public void deleteById(Integer id);
+	 -->
+	 <delete id="deleteById">
+	    delete from department where id = #{id}
+	 </delete>
+	 
+	 <!-- 
+	 public void updateDepartment(Department dept);
+	  -->
+	 <update id="updateDepartment">
+	    update department 
+	      <set>
+	         <if test="name != null and name != '' ">
+	             name = #{name},
+	         </if>
+	         <if test="defaultRoleId != null ">
+	             default_role = #{defaultRoleId},
+	         </if>
+	         <if test="updateTime != null">
+	             update_time = #{updateTime},
+	         </if>
+	         <if test="updateBy != null and updateBy != '' ">
+	             update_by = #{updateBy}
+	         </if>
+	      </set>
+	      <where>
+	          id = #{id}
+	      </where>
+	 </update> 
+	  
+	  <!-- 
+	 public void getAllDepartment(CriteriaDepartment criteriaDepartment,int pageSize);
+	  -->
+	  <select id="getAllDepartment" resultType="com.ssm.entity.Department">
+	      <bind name="page" value="(param1.page - 1) * param2"></bind>
+	      select id,name,default_role defaultRoleId,
+	             create_time createTime,
+	             create_by createBy,
+	             update_time updateTime,
+	             update_by updateBy
+	         from department
+	         <where>
+	            <if test="param1 != null">
+	              <if test="param1.id != null">
+	                 id like #{param1.id},
+	              </if>
+	              <if test="param1.name != null and param1.name != '' ">
+	                 name like #{param1.name}
+	              </if>
+	            </if>
+	         </where>  
+	         limit #{page},#{param2}  
+	  </select>
+	  
+	  
+</mapper>  

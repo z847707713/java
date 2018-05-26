@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssm.dao.UserDao"> 
+    
+   <cache type="org.mybatis.caches.ehcache.EhcacheCache"></cache>
+   
+   <sql id="field"> 
+     id,
+     username,
+     password,
+     available,
+     create_time createTime,
+     create_by createBy,
+     update_time createTime,
+     update_by createBy 
+                 
+   </sql>
+   
+   <sql id="fieldNo">
+      id,
+     username,
+     password,
+     available,
+     create_time,
+     create_by,
+     update_time,
+     update_by 
+   </sql>
+   
+   
+   <!-- 通过用户名查找对应的user信息(过滤掉不生效的用户) -->
+   <select id="getUserByUserName" resultType="com.ssm.entity.User">
+       select <include refid="field"></include>
+       from user
+       <where>
+           username = #{username}
+       </where>
+   </select> 
+   
+   <!-- 插入一个新的user记录，并返回对应的主键 -->
+   <insert id="createUserReturnId" parameterType="com.ssm.entity.User" useGeneratedKeys="true" keyProperty="id">
+       insert into 
+       user(
+         <include refid="fieldNo"></include>
+       )   
+       values(
+          null,
+          #{username},
+          #{password},
+          #{available},
+          #{createTime},
+          #{createBy},
+          #{updateTime},
+          #{updateBy}
+       )
+   </insert>
+   
+   <!-- 直接插入一个新的user记录 -->
+   <insert id="createUser" parameterType="com.ssm.entity.User">
+       insert into 
+       user(
+         <include refid="fieldNo"></include>
+       )   
+       values(
+          #{id},
+          #{username},
+          #{password},
+          #{available},
+          #{createTime},
+          #{createBy},
+          #{updateTime},
+          #{updateBy}
+       )
+   </insert>
+	
+	<!-- 更新user信息 -->
+	<update id="updateUser">
+	    update user 
+	    <set>
+	       <if test="username != null and uesrname != ''">
+	         username = #{username},
+	       </if>
+	       <if test="password != null and password != '' ">
+	         password = #{password},
+	       </if>
+	       <if test="available != null">
+	         available = #{available},
+	       </if>
+           <if test="updateTime != null">
+             update_time = #{updateTime},
+           </if>
+           <if test="updateBy != null and updateBy != '' ">
+              update_by = #{updateBy}
+           </if>
+	    </set>
+	       where id = #{id}
+	</update>
+	
+	<!-- 通过用户名删除该用户信息 -->
+	<delete id="deleteUser">
+	    delete from user where username = #{username}
+	</delete>
+    
+    <!--  通过用户名，查出该用户对应的所有的角色名  -->
+    <select id="getRoleStrByUerName" resultType="string">
+        select role_name from role r,user_role ur,user u
+            where u.username = #{username} 
+                  and u.id = ur.user_id
+                  and r.id = ur.role_id 
+    </select>	
+ 
+    <!--  通过用户名，查出该用户对应的所有权限字符串的集合(例如 user:create) 
+          @param   String username
+    -->
+    <select id="getUsersPermissionStrByName" resultType="string">
+         select permission from 
+           permission p,role_permission rp,user u,user_role ur
+          where u.username = #{username}
+            and ur.user_id = u.id
+            and ur.role_id = rp.role_id
+            and p.id = rp.permission_id      
+    </select>
+	
+	<!-- 得到所有的用户信息(不包含角色及权限) 
+	     @param (CriteriaUser criteriaUser,int pageSize)
+	-->
+	<select id="getAll" resultType="com.ssm.entity.User">
+	  <bind name="page" value="(param1.page - 1) * param2"/>
+	    select <include refid="field"></include> from user
+	      <where>
+	          <if test="param1 != null">
+	              <if test="param1.id != null ">
+	                 id like #{param1.id}
+	              </if>
+	              <if test="param1.username != null and param1.username != '' ">
+	                 and username like #{param1.username}
+	              </if>
+	              <if test="param1.available != null">
+	                 and available = #{param1.available}
+	              </if>
+	          </if>
+	      </where>
+	      <if test="param2 != null ">
+	      limit #{page},#{param2}
+	      </if>
+	</select>
+	
+	
+	<select id="getAllCount" resultType="int">
+	    select count(*) from user
+	      <where>
+	          <if test="param1 != null">
+	              <if test="param1.id != null ">
+	                 id like #{param1.id}
+	              </if>
+	              <if test="param1.username != null and param1.username != '' ">
+	                 and username like #{param1.username}
+	              </if>
+	              <if test="param1.available != null">
+	                 and available = #{param1.available}
+	              </if>
+	          </if>
+	      </where>
+	</select>
+	
+	
+	<resultMap type="com.ssm.entity.User" id="getUserAndRole">
+	   <id column="id" property="id" />
+	   <result column="username" property="username" />
+	   <result column="password" property="password" />
+	   <result column="createTime" property="createTime" />
+	   <result column="createBy" property="createBy" />
+	   <result column="updateTime" property="updateTime" />
+	   <result column="updateBy" property="updateBy" />
+	   <association property="roles" select="getRoleByUserId" column="id">
+	   </association>  
+	</resultMap>
+	
+	<select id="getRoleByUserId" resultType="com.ssm.entity.Role">
+	   select  id,role_name roleName,role_desc roleDesc,
+        create_time createTime,
+        create_by createBy,
+        update_time updateTime,
+        update_by updateBy
+        from role r,user_role ur 
+        where ur.user_id = #{id} 
+            and r.id = ur.role_id
+	</select>
+	
+	<!-- 得到所有的用户信息 (包含用户所拥有的角色)
+	    @param (CriteriaUser criteriaUser,int pageSize)
+	    result  List<User>
+	 -->
+	<select id="getAllUserAndRole" resultMap="getUserAndRole">
+	   <bind name="page" value="(param1.page - 1) * param2"/>
+	    select u.id,username,password,create_time createTime,create_by createBy,
+	           update_time updateTime,update_by updateBy
+	        from user u
+	   <where>
+	       <if test="param1 != null">
+	              <if test="param1.id != null ">
+	                 id like #{param1.id}
+	              </if>
+	              <if test="param1.username != null and param1.username != '' ">
+	                 and username like #{param1.username}
+	              </if>
+	              <if test="param1.available != null">
+	                 and available = #{param1.available}
+	              </if>
+	       </if>
+	   </where>
+	   group by u.id
+	   limit #{page},#{param2}
+	   
+	</select>
+	
+	<!-- 删除关联表中的字段，通过id； @param userId(用户id) -->
+	<delete id="deleteUserRole">
+	    delete from user_role where user_id = #{user_id}
+	</delete>
+ 
+    <!-- 
+             向关联表中插入字段，@param map: key(角色id),value(用户id)
+      @Param   Map<Integer, Integer> map       
+     -->
+    <insert id="insertUserRole" >
+        insert into user_role(user_id,role_id) values
+        <foreach collection="_parameter" item="value" index="key" separator=",">
+            (#{value},#{key})
+        </foreach>
+        
+    </insert>
+	
+	<select id="getAllMenu" resultType="com.ssm.entity.Permission">
+	    select id,name,url,permission
+	     from permission 
+	     where type='menu'
+	</select>
+   
+   
+</mapper>

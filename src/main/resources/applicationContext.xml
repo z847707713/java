@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+
+
+
+	<context:component-scan base-package="com.ssm">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+
+	<context:property-placeholder
+		location="classpath:db.properties" />
+
+	<bean id="dataSource"
+		class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="${jdbc.driverClass}"></property>
+		<property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+		<property name="user" value="${jdbc.user}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+	</bean>
+
+	<bean
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+	<tx:annotation-driven />
+
+	<bean id="cacheManager"
+		class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManagerConfigFile"
+			value="classpath:ehcache.xml" />
+	</bean>
+     
+     
+
+	<!-- spring 中配置mybatis -->
+	<bean class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- configLocation指定全局配置文件的路径 -->
+		<property name="configLocation"
+			value="classpath:mybatis-config.xml"></property>
+		<!-- 指定mapper文件的位置 -->
+		<property name="mapperLocations"
+			value="classpath:conf/mapper/*.xml"></property>
+			
+	</bean>
+	<!-- 配置自动扫描mapper接口的包 -->
+	<mybatis-spring:scan base-package="com.ssm.dao" />
+
+
+
+	<!-- 配置shiro -->
+	<!-- 1.配置securityManager -->
+
+	<!-- 配置sessionDao -->
+	<bean id="sessionDAO"
+		class="org.apache.shiro.session.mgt.eis.MemorySessionDAO" />
+
+	<!-- 配置sessionManager -->
+	<bean id="sessionManager"
+		class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+
+		<property name="sessionDAO" ref="sessionDAO" />
+
+	</bean>
+
+	<bean id="securityManager"
+		class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="shiroRealm"></property>
+		<property name="sessionManager" ref="sessionManager"></property>
+		<property name="cacheManager" ref="cacheManager"></property>
+	</bean>
+
+	<!-- 2.配置realm -->
+	<bean id="shiroRealm" class="com.ssm.shiro.ShiroRealm">
+
+	</bean>
+
+
+	<!-- 配置lifecycleBeanPostProcessor，可以自动的来调用配置在springIOC 容器中shiro bean 的生命周期方法 -->
+	<bean id="lifecycleBeanPostProcessor"
+		class="org.apache.shiro.spring.LifecycleBeanPostProcessor">
+	</bean>
+
+	<!-- 启用IOC 容器中使用shiro 的注解.但必须在配置了lifecycleBeanPostProcessor 之后才可以使用 -->
+	<bean
+		class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+		depends-on="lifecycleBeanPostProcessor">
+	</bean>
+
+	<bean
+		class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager"></property>
+	</bean>
+
+	<!-- 配置shiroFilter 必须和web.xml 文件中配置的DelegationgFilterProxy 的<filter-name> 
+		一致 -->
+	<bean id="shiroFilter"
+		class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager"></property>
+		<property name="loginUrl" value="/login.jsp"></property>
+		<property name="successUrl" value="/index"></property>
+		<property name="unauthorizedUrl" value="/unauthorized.jsp"></property>
+		<!-- <property name="filterChainDefinitionMap" ref="filterChainDefinitionMap"></property> -->
+
+
+		<!-- 配置那些页面需要被保护，以及访问这些页面需要权限 anon:可以被匿名访问 authc:必须认证(即登陆之后才可以访问) -->
+		<property name="filterChainDefinitions">
+			<value>
+				/logout = logout
+				/static/** = anon
+				/style/** = anon
+				/login = anon
+				/index = authc
+
+				/** = authc
+			</value>
+
+		</property>
+
+
+	</bean>
+
+
+
+
+
+
+
+</beans>
